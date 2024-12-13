@@ -7,29 +7,51 @@ import (
 )
 
 type TargetOptions struct {
-	RequiredString string  `json:"Required String"`
-	OptionalString *string `json:"Optional String,omitempty"`
-	OptionalInt    *int    `json:"Optional Int,omitempty"`
-	FilePath       *string `json:"File Path"`
+	RemoteHostname   *string `json:"Remote Hostname,omitempty"`
+	RemotePort       *int    `json:"Remote Port,omitempty"`
+	RemoteUser       *string `json:"Remote User,omitempty"`
+	RemotePassword   *string `json:"Remote Password,omitempty"`
+	RemotePrivateKey *string `json:"Remote Private Key Path,omitempty"`
+	SockPath         *string `json:"Sock Path,omitempty"`
+	WorkspaceDataDir *string `json:"Workspace Data Dir,omitempty"`
 }
 
 func GetTargetManifest() *provider.ProviderTargetManifest {
 	return &provider.ProviderTargetManifest{
-		"Required String": provider.ProviderTargetProperty{
-			Type:         provider.ProviderTargetPropertyTypeString,
-			DefaultValue: "default-required-string",
+		"Remote Hostname": provider.ProviderTargetProperty{
+			Type:              provider.ProviderTargetPropertyTypeString,
+			DisabledPredicate: "^local$",
 		},
-		"Optional String": provider.ProviderTargetProperty{
-			Type:        provider.ProviderTargetPropertyTypeString,
-			InputMasked: true,
+		"Remote Port": provider.ProviderTargetProperty{
+			Type:              provider.ProviderTargetPropertyTypeInt,
+			DefaultValue:      "22",
+			DisabledPredicate: "^local$",
 		},
-		"Optional Int": provider.ProviderTargetProperty{
-			Type: provider.ProviderTargetPropertyTypeInt,
+		"Remote User": provider.ProviderTargetProperty{
+			Type: provider.ProviderTargetPropertyTypeString,
+			// TODO: Add docs entry
+			Description:       "Note: non-root user required",
+			DisabledPredicate: "^local$",
 		},
-		"File Path": provider.ProviderTargetProperty{
+		"Remote Password": provider.ProviderTargetProperty{
+			Type:              provider.ProviderTargetPropertyTypeString,
+			DisabledPredicate: "^local$",
+			InputMasked:       true,
+		},
+		"Remote Private Key Path": provider.ProviderTargetProperty{
 			Type:              provider.ProviderTargetPropertyTypeFilePath,
 			DefaultValue:      "~/.ssh",
-			DisabledPredicate: "^default-target$",
+			DisabledPredicate: "^local$",
+		},
+		"Sock Path": provider.ProviderTargetProperty{
+			Type:         provider.ProviderTargetPropertyTypeString,
+			DefaultValue: "/var/run/docker.sock",
+		},
+		"Workspace Data Dir": provider.ProviderTargetProperty{
+			Type:              provider.ProviderTargetPropertyTypeString,
+			DefaultValue:      "/tmp/daytona-data",
+			Description:       "The directory on the remote host where the workspace data will be stored",
+			DisabledPredicate: "^local$",
 		},
 	}
 }
