@@ -1,4 +1,4 @@
-module github.com/daytonaio/daytona-provider-sample
+module github.com/Rutik7066/daytona-provider-windows
 
 go 1.23.0
 

@@ -9,11 +9,11 @@ import (
 	"github.com/daytonaio/daytona/pkg/workspace"
 	"github.com/daytonaio/daytona/pkg/workspace/project"
 
-	"github.com/daytonaio/daytona-provider-sample/pkg/provider"
-	provider_types "github.com/daytonaio/daytona-provider-sample/pkg/types"
+	"github.com/Rutik7066/daytona-provider-windows/pkg/provider"
+	provider_types "github.com/Rutik7066/daytona-provider-windows/pkg/types"
 )
 
-var sampleProvider = &provider.SampleProvider{}
+var sampleProvider = &provider.WindowsProvider{}
 var targetOptions = &provider_types.TargetOptions{
 	RequiredString: "default-required-string",
 }
