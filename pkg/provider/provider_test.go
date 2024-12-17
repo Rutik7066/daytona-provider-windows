@@ -1,22 +1,28 @@
 package provider_test
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
+	"github.com/Rutik7066/daytona-provider-windows/pkg/client"
+
+	"github.com/Rutik7066/daytona-provider-windows/pkg/docker"
 	"github.com/daytonaio/daytona/pkg/gitprovider"
-	daytona_provider "github.com/daytonaio/daytona/pkg/provider"
+	"github.com/daytonaio/daytona/pkg/provider"
 	"github.com/daytonaio/daytona/pkg/workspace"
 	"github.com/daytonaio/daytona/pkg/workspace/project"
 
-	"github.com/Rutik7066/daytona-provider-windows/pkg/provider"
+	docker_provider "github.com/Rutik7066/daytona-provider-windows/pkg/provider"
 	provider_types "github.com/Rutik7066/daytona-provider-windows/pkg/types"
+
+	docker_types "github.com/docker/docker/api/types"
+	docker_client "github.com/docker/docker/client"
 )
 
-var sampleProvider = &provider.WindowsProvider{}
-var targetOptions = &provider_types.TargetOptions{
-	RequiredString: "default-required-string",
-}
+var dockerProvider = &docker_provider.WindowsProvider{}
+var targetOptions = &provider_types.TargetOptions{}
+var sockDir = "/tmp/target-socks"
 var optionsString string
 
 var project1 = &project.Project{
@@ -26,15 +32,7 @@ var project1 = &project.Project{
 		Url:  "https://github.com/daytonaio/daytona",
 		Name: "daytona",
 	},
-	EnvVars: map[string]string{
-		"DAYTONA_WS_ID":                     "123",
-		"DAYTONA_WS_PROJECT_NAME":           "test",
-		"DAYTONA_WS_PROJECT_REPOSITORY_URL": "https://github.com/daytonaio/daytona",
-		"DAYTONA_SERVER_API_KEY":            "api-key-test",
-		"DAYTONA_SERVER_VERSION":            "latest",
-		"DAYTONA_SERVER_URL":                "http://localhost:3001",
-		"DAYTONA_SERVER_API_URL":            "http://localhost:3000",
-	},
+	Image:       "daytonaio/workspace-project:latest",
 	WorkspaceId: "123",
 }
 
@@ -47,25 +45,36 @@ var workspace1 = &workspace.Workspace{
 	},
 }
 
+func GetContainerName(project *project.Project) string {
+	dockerClient := docker.NewDockerClient(docker.DockerClientConfig{})
+
+	return dockerClient.GetProjectContainerName(project)
+}
+
 func TestCreateWorkspace(t *testing.T) {
-	wsReq := &daytona_provider.WorkspaceRequest{
+	wsReq := &provider.WorkspaceRequest{
 		TargetOptions: optionsString,
 		Workspace:     workspace1,
 	}
 
-	_, err := sampleProvider.CreateWorkspace(wsReq)
+	_, err := dockerProvider.CreateWorkspace(wsReq)
 	if err != nil {
 		t.Errorf("Error creating workspace: %s", err)
+	}
+
+	_, err = getDockerClient().NetworkInspect(context.Background(), workspace1.Id, docker_types.NetworkInspectOptions{})
+	if err != nil {
+		t.Errorf("Expected network to exist")
 	}
 }
 
 func TestGetWorkspaceInfo(t *testing.T) {
-	wsReq := &daytona_provider.WorkspaceRequest{
+	wsReq := &provider.WorkspaceRequest{
 		TargetOptions: optionsString,
 		Workspace:     workspace1,
 	}
 
-	workspaceInfo, err := sampleProvider.GetWorkspaceInfo(wsReq)
+	workspaceInfo, err := dockerProvider.GetWorkspaceInfo(wsReq)
 	if err != nil || workspaceInfo == nil {
 		t.Errorf("Error getting workspace info: %s", err)
 	}
@@ -76,53 +85,82 @@ func TestGetWorkspaceInfo(t *testing.T) {
 		t.Errorf("Error unmarshalling workspace metadata: %s", err)
 	}
 
-	if workspaceMetadata.Property != wsReq.Workspace.Id {
-		t.Errorf("Expected network id %s, got %s", wsReq.Workspace.Id, workspaceMetadata.Property)
+	if workspaceMetadata.NetworkId != wsReq.Workspace.Id {
+		t.Errorf("Expected network id %s, got %s", wsReq.Workspace.Id, workspaceMetadata.NetworkId)
 	}
 }
 
 func TestDestroyWorkspace(t *testing.T) {
-	wsReq := &daytona_provider.WorkspaceRequest{
+	wsReq := &provider.WorkspaceRequest{
 		TargetOptions: optionsString,
 		Workspace:     workspace1,
 	}
 
-	_, err := sampleProvider.DestroyWorkspace(wsReq)
+	_, err := dockerProvider.DestroyWorkspace(wsReq)
 	if err != nil {
 		t.Errorf("Error deleting workspace: %s", err)
+	}
+
+	dockerClient, err := client.GetClient(*targetOptions, sockDir)
+	if err != nil {
+		t.Errorf("Error getting docker client: %s", err)
+	}
+
+	_, err = dockerClient.NetworkInspect(context.Background(), workspace1.Id, docker_types.NetworkInspectOptions{})
+	if err == nil {
+		t.Errorf("Expected network to not exist")
 	}
 }
 
 func TestCreateProject(t *testing.T) {
 	TestCreateWorkspace(t)
 
-	projectReq := &daytona_provider.ProjectRequest{
+	projectReq := &provider.ProjectRequest{
 		TargetOptions: optionsString,
 		Project:       project1,
 	}
 
-	_, err := sampleProvider.CreateProject(projectReq)
+	_, err := dockerProvider.CreateProject(projectReq)
 	if err != nil {
 		t.Errorf("Error creating project: %s", err)
+	}
+
+	_, err = getDockerClient().ContainerInspect(context.Background(), GetContainerName(project1))
+	if err != nil {
+		t.Errorf("Expected container to exist")
 	}
 }
 
 func TestDestroyProject(t *testing.T) {
-	projectReq := &daytona_provider.ProjectRequest{
+	projectReq := &provider.ProjectRequest{
 		TargetOptions: optionsString,
 		Project:       project1,
 	}
 
-	_, err := sampleProvider.DestroyProject(projectReq)
+	_, err := dockerProvider.DestroyProject(projectReq)
 	if err != nil {
 		t.Errorf("Error deleting project: %s", err)
+	}
+
+	_, err = getDockerClient().ContainerInspect(context.Background(), GetContainerName(project1))
+	if err == nil {
+		t.Errorf("Expected container to not exist")
 	}
 
 	TestDestroyWorkspace(t)
 }
 
+func getDockerClient() *docker_client.Client {
+	dockerClient, err := client.GetClient(*targetOptions, sockDir)
+	if err != nil {
+		panic(err)
+	}
+
+	return dockerClient
+}
+
 func init() {
-	_, err := sampleProvider.Initialize(daytona_provider.InitializeProviderRequest{
+	_, err := dockerProvider.Initialize(provider.InitializeProviderRequest{
 		BasePath:           "/tmp/workspaces",
 		DaytonaDownloadUrl: "https://download.daytona.io/daytona/get-server.sh",
 		DaytonaVersion:     "latest",
@@ -130,7 +168,6 @@ func init() {
 		ApiUrl:             "",
 		ServerPort:         0,
 		ApiPort:            0,
-		LogsDir:            "/tmp/logs",
 	})
 	if err != nil {
 		panic(err)
