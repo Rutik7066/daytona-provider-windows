@@ -46,7 +46,19 @@ func (d *DockerClient) initProjectContainer(opts *CreateProjectOptions, mountPro
 	}
 
 	var availablePort *uint16
-	var portBindings map[nat.Port][]nat.PortBinding
+	portBindings := make(map[nat.Port][]nat.PortBinding)
+	portBindings["8006/tcp"] = []nat.PortBinding{
+		{
+			HostIP:   "0.0.0.0",
+			HostPort: "8006",
+		},
+	}
+	portBindings["2222/tcp"] = []nat.PortBinding{
+		{
+			HostIP:   "0.0.0.0",
+			HostPort: "2223",
+		},
+	}
 
 	if opts.Project.Target == "local" {
 		p, err := ports.GetAvailableEphemeralPort()
@@ -54,14 +66,15 @@ func (d *DockerClient) initProjectContainer(opts *CreateProjectOptions, mountPro
 			log.Error(err)
 		} else {
 			availablePort = &p
-			portBindings = make(map[nat.Port][]nat.PortBinding)
 			portBindings["2280/tcp"] = []nat.PortBinding{
 				{
 					HostIP:   "0.0.0.0",
 					HostPort: fmt.Sprintf("%d", *availablePort),
 				},
 			}
+
 		}
+
 	}
 
 	c, err := d.apiClient.ContainerCreate(ctx, GetContainerCreateConfig(opts.Project, availablePort), &container.HostConfig{
@@ -70,7 +83,24 @@ func (d *DockerClient) initProjectContainer(opts *CreateProjectOptions, mountPro
 		ExtraHosts: []string{
 			"host.docker.internal:host-gateway",
 		},
-		PortBindings: portBindings,
+		PortBindings:    portBindings,
+		PublishAllPorts: true,
+		Resources: container.Resources{
+
+			Devices: []container.DeviceMapping{
+				{
+					PathOnHost:        "/dev/kvm",
+					PathInContainer:   "/dev/kvm",
+					CgroupPermissions: "rwm",
+				},
+				{
+					PathOnHost:        "/dev/net/tun",
+					PathInContainer:   "/dev/net/tun",
+					CgroupPermissions: "rwm",
+				},
+			},
+		},
+		CapAdd: []string{"NET_ADMIN"},
 	}, nil, nil, d.GetProjectContainerName(opts.Project))
 	if err != nil {
 		return err
@@ -108,7 +138,7 @@ func (d *DockerClient) initProjectContainer(opts *CreateProjectOptions, mountPro
 
 func GetContainerCreateConfig(project *project.Project, toolboxApiHostPort *uint16) *container.Config {
 	envVars := []string{}
-
+	envVars = append(envVars, `ARGUMENTS="-nic user,hostfwd=tcp::2222-:22"`)
 	for key, value := range project.EnvVars {
 		envVars = append(envVars, fmt.Sprintf("%s=%s", key, value))
 	}
@@ -124,6 +154,8 @@ func GetContainerCreateConfig(project *project.Project, toolboxApiHostPort *uint
 	}
 
 	exposedPorts := nat.PortSet{}
+	exposedPorts["8006/tcp"] = struct{}{}
+	exposedPorts["2223/tcp"] = struct{}{}
 	if toolboxApiHostPort != nil {
 		exposedPorts["2280/tcp"] = struct{}{}
 	}
@@ -134,7 +166,7 @@ func GetContainerCreateConfig(project *project.Project, toolboxApiHostPort *uint
 		Labels:       labels,
 		User:         project.User,
 		Env:          envVars,
-		Entrypoint:   []string{"sleep", "infinity"},
+		Entrypoint:   []string{"/usr/bin/tini", "-s", "/run/entry.sh"},
 		AttachStdout: true,
 		AttachStderr: true,
 		ExposedPorts: exposedPorts,
