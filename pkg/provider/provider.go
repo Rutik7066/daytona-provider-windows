@@ -73,10 +73,10 @@ func (p *WindowsProvider) Initialize(req provider.InitializeProviderRequest) (*p
 }
 
 func (p WindowsProvider) GetInfo() (provider.ProviderInfo, error) {
-	label := "Docker"
+	label := "Windows"
 
 	return provider.ProviderInfo{
-		Name:    "docker-provider",
+		Name:    "windows-provider",
 		Label:   &label,
 		Version: internal.Version,
 	}, nil
