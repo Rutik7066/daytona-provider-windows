@@ -20,38 +20,30 @@ func GetTargetManifest() *provider.ProviderTargetManifest {
 	return &provider.ProviderTargetManifest{
 		"Remote Hostname": provider.ProviderTargetProperty{
 			Type:              provider.ProviderTargetPropertyTypeString,
+			DefaultValue:      "localhost",
 			DisabledPredicate: "^local$",
 		},
 		"Remote Port": provider.ProviderTargetProperty{
 			Type:              provider.ProviderTargetPropertyTypeInt,
-			DefaultValue:      "22",
+			DefaultValue:      "2223",
 			DisabledPredicate: "^local$",
 		},
 		"Remote User": provider.ProviderTargetProperty{
-			Type: provider.ProviderTargetPropertyTypeString,
-			// TODO: Add docs entry
+			Type:              provider.ProviderTargetPropertyTypeString,
+			DefaultValue:      "Docker",
 			Description:       "Note: non-root user required",
 			DisabledPredicate: "^local$",
 		},
 		"Remote Password": provider.ProviderTargetProperty{
 			Type:              provider.ProviderTargetPropertyTypeString,
+			DefaultValue:      "daytona123",
 			DisabledPredicate: "^local$",
 			InputMasked:       true,
 		},
-		"Remote Private Key Path": provider.ProviderTargetProperty{
-			Type:              provider.ProviderTargetPropertyTypeFilePath,
-			DefaultValue:      "~/.ssh",
-			DisabledPredicate: "^local$",
-		},
+
 		"Sock Path": provider.ProviderTargetProperty{
 			Type:         provider.ProviderTargetPropertyTypeString,
 			DefaultValue: "/var/run/docker.sock",
-		},
-		"Workspace Data Dir": provider.ProviderTargetProperty{
-			Type:              provider.ProviderTargetPropertyTypeString,
-			DefaultValue:      "/tmp/daytona-data",
-			Description:       "The directory on the remote host where the workspace data will be stored",
-			DisabledPredicate: "^local$",
 		},
 	}
 }
