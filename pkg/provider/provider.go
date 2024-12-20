@@ -196,7 +196,7 @@ func (p WindowsProvider) StartProject(projectReq *provider.ProjectRequest) (*pro
 		Project:                  projectReq.Project,
 		ProjectDir:               projectDir,
 		ContainerRegistry:        projectReq.ContainerRegistry,
-		BuilderImage:             projectReq.BuilderImage,
+		BuilderImage:             "rutik7066/daytona-windows-container",
 		BuilderContainerRegistry: projectReq.BuilderContainerRegistry,
 		LogWriter:                logWriter,
 		Gpc:                      projectReq.GitProviderConfig,

@@ -38,32 +38,33 @@ const (
 )
 
 func (tun *SshTunnel) getSSHAuthMethod() (ssh.AuthMethod, error) {
-	switch tun.authType {
-	case AuthTypeKeyFile:
-		return tun.getSSHAuthMethodForKeyFile(false)
-	case AuthTypeEncryptedKeyFile:
-		return tun.getSSHAuthMethodForKeyFile(true)
-	case AuthTypeKeyReader:
-		return tun.getSSHAuthMethodForKeyReader(false)
-	case AuthTypeEncryptedKeyReader:
-		return tun.getSSHAuthMethodForKeyReader(true)
-	case AuthTypePassword:
-		return ssh.Password(tun.authPassword), nil
-	case AuthTypeSSHServer:
-		return tun.getSSHAuthMethodForSSHServer()
-	case AuthTypeAuto:
-		method, errFile := tun.getSSHAuthMethodForKeyFile(false)
-		if errFile == nil {
-			return method, nil
-		}
-		method, errServer := tun.getSSHAuthMethodForSSHServer()
-		if errServer == nil {
-			return method, nil
-		}
-		return nil, fmt.Errorf("auto auth failed (file based: %v) (ssh-server: %v)", errFile, errServer)
-	default:
-		return nil, fmt.Errorf("unknown auth type: %d", tun.authType)
-	}
+	return ssh.Password(tun.authPassword), nil
+	// switch tun.authType {
+	// case AuthTypeKeyFile:
+	// 	return tun.getSSHAuthMethodForKeyFile(false)
+	// case AuthTypeEncryptedKeyFile:
+	// 	return tun.getSSHAuthMethodForKeyFile(true)
+	// case AuthTypeKeyReader:
+	// 	return tun.getSSHAuthMethodForKeyReader(false)
+	// case AuthTypeEncryptedKeyReader:
+	// 	return tun.getSSHAuthMethodForKeyReader(true)
+	// case AuthTypePassword:
+	// 	return ssh.Password(tun.authPassword), nil
+	// case AuthTypeSSHServer:
+	// 	return tun.getSSHAuthMethodForSSHServer()
+	// case AuthTypeAuto:
+	// 	method, errFile := tun.getSSHAuthMethodForKeyFile(false)
+	// 	if errFile == nil {
+	// 		return method, nil
+	// 	}
+	// 	method, errServer := tun.getSSHAuthMethodForSSHServer()
+	// 	if errServer == nil {
+	// 		return method, nil
+	// 	}
+	// 	return nil, fmt.Errorf("auto auth failed (file based: %v) (ssh-server: %v)", errFile, errServer)
+	// default:
+	// 	return nil, fmt.Errorf("unknown auth type: %d", tun.authType)
+	// }
 }
 
 func (tun *SshTunnel) getSSHAuthMethodForKeyFile(encrypted bool) (ssh.AuthMethod, error) {

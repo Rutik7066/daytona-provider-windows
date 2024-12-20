@@ -40,7 +40,6 @@ func GetTargetManifest() *provider.ProviderTargetManifest {
 			DisabledPredicate: "^local$",
 			InputMasked:       true,
 		},
-
 		"Sock Path": provider.ProviderTargetProperty{
 			Type:         provider.ProviderTargetPropertyTypeString,
 			DefaultValue: "/var/run/docker.sock",

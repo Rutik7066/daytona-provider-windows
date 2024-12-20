@@ -2,6 +2,7 @@ package provider
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	log_writers "github.com/Rutik7066/daytona-provider-windows/internal/log"
@@ -23,17 +24,17 @@ func (p WindowsProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest
 
 	dockerClient, err := p.getClient(workspaceReq.TargetOptions)
 	if err != nil {
-		return new(provider_util.Empty), err
+		return new(provider_util.Empty), fmt.Errorf("failed to get docker client: %w", err)
 	}
 
 	workspaceDir, err := p.getWorkspaceDir(workspaceReq)
 	if err != nil {
-		return new(provider_util.Empty), err
+		return new(provider_util.Empty), fmt.Errorf("failed to get workspace dir: %w", err)
 	}
 
 	sshClient, err := p.getSshClient(workspaceReq.Workspace.Target, workspaceReq.TargetOptions)
 	if err != nil {
-		return new(provider_util.Empty), err
+		return new(provider_util.Empty), fmt.Errorf("failed to get ssh client: %w", err)
 	}
 	if sshClient != nil {
 		defer sshClient.Close()
